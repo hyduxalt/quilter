@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.1/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css" />
+    <meta charset="utf-8" />
+  </head>
+
+  <body>
+    <main>
+      <div class="toolbar-container one">
+        <button id="b-rotate" title="rotate 90° clockwise">
+          <img src="Icons/rotate.svg" />
+        </button>
+        <button id="b-expand" title="expand">
+          <img src="Icons/expand.svg" />
+        </button>
+        <button id="b-contract" title="contract">
+          <img src="Icons/contract.svg" />
+        </button>
+        <button id="b-subdivide" style="display:none" title="subdivide">
+          <img src="Icons/subdivide.svg" />
+        </button>
+        <div class="spacer"></div>
+        <div class="width-buttons">
+          <button class="b-minus" title="shrink viewport">-</button>
+          <button class="b-plus" title="extend viewport">+</button>
+        </div>
+      </div>
+      <div class="toolbar-container two">
+        <button id="b-flip-horizontal" title="flip horizontal">
+          <img src="Icons/flipHorizontal.svg" />
+        </button>
+        <button id="b-flip-vertical" title="flip vertical">
+          <img src="Icons/flipVertical.svg" />
+        </button>
+        <button id="b-fill" title="fill">▧</button>
+        <div class="spacer"></div>
+        <div class="height-buttons">
+          <button class="b-minus" title="shrink viewport">-</button>
+          <button class="b-plus" title="extend viewport">+</button>
+        </div>
+      </div>
+      <div class="display">
+        <div class="display-one">
+          <span class="canvas-container"></span>
+          <ul class="colors-container"></ul>
+        </div>
+        <div class="display-two">
+          <span class="bottom-container">
+            <div class="current-color-container"></div>
+            <div class="menu-container">
+              <div class="save-container">
+                <input id="i-file-name" value="" type="text" title="input file name">
+                <button id="b-save" title="download pattern file">Save Pattern</button>
+              </div>
+              <div class="load-container"></div>
+              <br>
+              <div class="undo-redo-container">
+                <button id="b-undo" title="undo">↶</button>
+                <button id="b-redo" title="redo">↷</button>
+              </div>
+            </div>
+          </span>
+          <span class="layout-container"></span>
+        </div>
+      </div>
+    </main>
+    <script src="sketch.js"></script>
+  </body>
+</html>
