@@ -329,3 +329,173 @@ function loadFile(filePath) {
   }
   return result;
 }
+function loadBottomDiv() {
+  loadCurrentColorPicker();
+
+  fileNameInput = select("#i-file-name");
+  let downloadButton = select("#b-save");
+  downloadButton.mousePressed(savePattern);
+  
+  let loadDiv = select(".load-container")
+  uploadInput = createFileInput(loadPattern);
+  uploadInput.id("i-load");
+  uploadInput.parent(loadDiv);
+  let uploadButton = createButton("Load Pattern")
+  uploadButton.id("b-load")
+  uploadButton.parent(loadDiv);
+  uploadButton.attribute("title", "upload pattern file");
+  uploadButton.attribute("onclick", "document.getElementById('i-load').click();")
+
+  undoButton = select("#b-undo");
+  redoButton = select("#b-redo");
+  undoButton.mousePressed(doUndo);
+  redoButton.mousePressed(doRedo);
+}
+
+function loadPlusMinusDiv() {
+  let wButtonMinus = select(".width-buttons>.b-minus");
+  let wButtonPlus = select(".width-buttons>.b-plus");
+  let hButtonMinus = select(".height-buttons>.b-minus");
+  let hButtonPlus = select(".height-buttons>.b-plus");
+  wButtonMinus.mousePressed(() => changeWidth(-1));
+  wButtonPlus.mousePressed(() => changeWidth(1));
+  hButtonMinus.mousePressed(() => changeHeight(-1));
+  hButtonPlus.mousePressed(() => changeHeight(1));
+}
+
+function loadToolbarDiv() {
+  let rotateButton = select("#b-rotate");
+  let expandButton = select("#b-expand");
+  let contractButton = select("#b-contract");
+  let fillButton = select("#b-fill");
+  let reflectWButton = select("#b-flip-horizontal");
+  let reflectHButton = select("#b-flip-vertical");
+  let subdivideButton = select("#b-subdivide");
+  rotateButton.mousePressed(patternRotate);
+  expandButton.mousePressed(patternExpand);
+  contractButton.mousePressed(patternContract);
+  reflectWButton.mousePressed(patternFlipW);
+  reflectHButton.mousePressed(patternFlipH);
+  fillButton.mousePressed(patternFill);
+  subdivideButton.mousePressed(patternSubdivide);
+}
+
+function loadDOM() {
+  loadToolbarDiv();
+
+  loadPlusMinusDiv();
+
+  loadBottomDiv();
+}
+
+
+// Pattern Handling Functions ------------------------------------------
+
+function setPattern(pattern_a, colors_o, layout_a) {
+  if (colors_o) {
+    loadColorsDiv(colors_o);
+    currentColors = deepCopy(colorScheme); // for history system
+
+    let colors = Object.keys(colorScheme);
+    currentColor = currentColor || colors[1] || colors[0];
+  }
+
+  pattern_array = pattern_a;
+
+  patternH = pattern_array.length;
+  patternW = pattern_array[0].length;
+  patternSizeX = squareScale * patternW;
+  patternSizeY = squareScale * patternH;
+
+  root.style.setProperty("--block-width", patternW);
+  resetCanvas();
+
+  patternSizeX = patternW * squareScale;
+  patternSizeY = patternH * squareScale;
+
+  if (pattern_g) pattern_g.remove();
+  pattern_g = createGraphics(patternSizeX, patternSizeY);
+
+  if (layout_a) {
+    layout_array = layout_a;
+    
+    loadLayout();
+  }
+}
+
+function loadPattern(file) {
+  let pattern_a = file.data.pattern.split("\n").map((x) => x.split(" "));
+  let layout_a;
+  if (file.data.layout) layout_a = file.data.layout;
+  let colors_o = file.data.colorScheme;
+
+  let previousPattern = deepCopy([pattern_array, colorScheme, layout_array]);
+  let currentPattern = deepCopy([pattern_a, colors_o, layout_a]);
+
+  setPattern(pattern_a, colors_o, layout_a);
+
+  if (fileNameInput) {
+    //reset the upload button
+    let fileName = uploadInput
+      .value()
+      .slice(uploadInput.value().lastIndexOf("\\") + 1,
+             uploadInput.value().indexOf(".json"));
+    fileNameInput.value(fileName);
+    uploadInput.value("");
+  }
+
+  // log in history
+  if (previousPattern[0]) {
+    logAction(
+      () => setPattern(...previousPattern),
+      () => setPattern(...currentPattern)
+    );
+  }
+}
+
+function savePattern() {
+  let contents = {};
+
+  contents.colorScheme = colorScheme;
+  contents.pattern = pattern_array.map((x) => x.join(" ")).join("\n");
+  contents.layout = layout_array;
+
+  let name = fileNameInput.value();
+  if (name.trim().length == 0) name = "quilt_pattern";
+
+  save(contents, name + ".json")
+}
+
+function resetCanvas() {
+  resizeCanvas(patternSizeX * W, patternSizeY * H);
+}
+
+function loadColorsDiv(colors_o) {
+  pickerPosition = 0;
+
+  if (colorsDiv) {
+    colorsDiv.remove();
+    colorsDiv = createElement("ul");
+    colorsDiv.class("colors-container");
+    colorsDiv.parent(select(".display-one"));
+  }
+  colorsDiv = select(".colors-container");
+
+  if (colors_o) {
+    colorScheme = colors_o;
+    /*
+    Object.keys(colorScheme).map(function(i) {
+      let newColor = color(...colorScheme[i].levels)
+      colorScheme[i] = newColor
+    })
+    */
+  }
+
+  let colors = Object.keys(colorScheme);
+  for (var i in colors) {
+    colorScheme[colors[i]] = color(colorScheme[colors[i]].levels);
+    if (colors[i] === "_") continue;
+    newPicker(colorScheme[colors[i]], colors[i], pickerPosition);
+    pickerPosition++;
+  }
+}
