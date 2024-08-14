@@ -746,3 +746,363 @@ function loadLayout() {
   createPlusMinusButton(false, hButtonDiv, -1);
   createPlusMinusButton(false, hButtonDiv, 1);
 }
+function createPlusMinusButton(horizontal, parent, value) {
+  let button;
+  if (value > 0) {
+    button = createButton("+");
+    button.attribute("title", "extend layout");
+  } else if (value < 0) {
+    button = createButton("-");
+    button.attribute("title", "shorten layout");
+  }
+  button.parent(parent);
+  button.class("layout-wh-button");
+
+  if (horizontal) {
+    button.mousePressed(() => changeLayoutWidth(value));
+  } else {
+    button.mousePressed(() => changeLayoutHeight(value));
+  }
+}
+
+function changeLayoutWidth(value) {
+  if (value > 0) layout_array.forEach((x) => x.push(0));
+  else if (layout_array[0].length > 1) layout_array.forEach((x) => x.pop());
+
+  loadLayout();
+}
+
+function changeLayoutHeight(value) {
+  if (value > 0)
+    layout_array.push(Array.from({ length: layout_array[0].length }, () => 0));
+  else if (layout_array.length > 1) layout_array.pop();
+
+  loadLayout();
+}
+
+function next(x, y) {
+  let previous = layout_array[x][y];
+  let current = (previous + 1) % Object.keys(LayoutTransforms).length;
+  layout_array[x][y] = current;
+
+  loadLayout();
+
+  logAction(
+    () => setLayoutTile(previous, x, y),
+    () => setLayoutTile(current, x, y)
+  );
+}
+
+
+// Transformations/Tool Bar functions ----------------------------
+
+function patternRotate() {
+  let previousArray = pattern_array;
+  let newArray = [];
+
+  for (var j = 0; j < patternW; j++) {
+    newArray.push([]);
+    for (var i = 0; i < patternH; i++) {
+      let newTile = pattern_array[patternH - 1 - i][j];
+      if (newTile.includes("/"))
+        newTile = newTile.replace(/([A-Z]|_)\/([A-Z]|_)/, "$2\\$1");
+      else if (newTile.includes("\\"))
+        newTile = newTile.replace(/([A-Z]|_)\\([A-Z]|_)/, "$1/$2");
+
+      newArray[j].push(newTile);
+    }
+  }
+
+  pattern_array = newArray;
+
+  logAction(
+    () => setPattern(previousArray),
+    () => setPattern(newArray)
+  );
+}
+
+function patternExpand() {
+  let previousPattern = deepCopy(pattern_array);
+
+  patternW += 1;
+  patternH += 1;
+
+  root.style.setProperty("--block-width", patternW);
+
+  pattern_array.forEach(function (x) {
+    x.push("-_-");
+  });
+  pattern_array.push(Array.from({ length: patternW }, () => "-_-"));
+
+  patternSizeX = patternW * squareScale;
+  patternSizeY = patternH * squareScale;
+
+  pattern_g.remove();
+  pattern_g = createGraphics(patternSizeX, patternSizeY);
+
+  resetCanvas();
+
+  let currentPattern = deepCopy(pattern_array);
+
+  logAction(
+    () => setPattern(previousPattern),
+    () => setPattern(currentPattern)
+  );
+}
+
+function patternContract() {
+  if (patternW == 1 || patternH == 1) return;
+
+  let previousPattern = deepCopy(pattern_array);
+
+  patternW -= 1;
+  patternH -= 1;
+
+  root.style.setProperty("--block-width", patternW);
+
+  pattern_array.pop();
+  pattern_array.forEach(function (x) {
+    x.pop();
+  });
+
+  patternSizeX = patternW * squareScale;
+  patternSizeY = patternH * squareScale;
+
+  pattern_g.remove();
+  pattern_g = createGraphics(patternSizeX, patternSizeY);
+
+  resetCanvas();
+
+  let currentPattern = deepCopy(pattern_array);
+
+  logAction(
+    () => setPattern(previousPattern),
+    () => setPattern(currentPattern)
+  );
+}
+
+function patternFlipW() {
+  let previousArray = deepCopy(pattern_array);
+  pattern_array = pattern_array.map((x) => x.reverse());
+
+  for (let i = 0; i < patternH; i++) {
+    for (let j = 0; j < patternW; j++) {
+      let newTile = pattern_array[i][j];
+
+      if (newTile.includes("/"))
+        newTile = newTile.replace(/([A-Z]|_)\/([A-Z]|_)/, "$2\\$1");
+      else if (newTile.includes("\\"))
+        newTile = newTile.replace(/([A-Z]|_)\\([A-Z]|_)/, "$2/$1");
+
+      pattern_array[i][j] = newTile;
+    }
+  }
+
+  let newArray = deepCopy(pattern_array);
+
+  logAction(
+    () => setPattern(previousArray),
+    () => setPattern(newArray)
+  );
+}
+
+function patternFlipH() {
+  let previousArray = deepCopy(pattern_array);
+  pattern_array = pattern_array.reverse();
+
+  for (let i = 0; i < patternH; i++) {
+    for (let j = 0; j < patternW; j++) {
+      let newTile = pattern_array[i][j];
+
+      if (newTile.includes("/"))
+        newTile = newTile.replace(/([A-Z]|_)\/([A-Z]|_)/, "$1\\$2");
+      else if (newTile.includes("\\"))
+        newTile = newTile.replace(/([A-Z]|_)\\([A-Z]|_)/, "$1/$2");
+
+      pattern_array[i][j] = newTile;
+    }
+  }
+
+  let newArray = deepCopy(pattern_array);
+
+  logAction(
+    () => setPattern(previousArray),
+    () => setPattern(newArray)
+  );
+}
+
+function patternFill() {
+  let previousArray = deepCopy(pattern_array);
+
+  checkForNewColor();
+
+  pattern_array = pattern_array.map((x) =>
+    x.map((y) => "-" + currentColor + "-")
+  );
+
+  let newArray = deepCopy(pattern_array);
+
+  if (JSON.stringify(previousArray) != JSON.stringify(newArray)) {
+    logAction(
+      () => setPattern(previousArray),
+      () => setPattern(newArray)
+    );
+  }
+}
+
+function patternSubdivide() {
+  let previousArray = deepCopy(pattern_array);
+  let newArray = []
+
+  for (var i in pattern_array) {
+    let rowOne = []
+    let rowTwo = []
+    
+    for (var j in pattern_array[i]) {
+      let S = pattern_array[i][j]
+      
+      tile = S.match(/-([A-Z]|_)-/);
+      if (tile) {
+        rowOne.push(S)
+        rowOne.push(S)
+        rowTwo.push(S)
+        rowTwo.push(S)
+      }
+      tile = S.match(/([A-Z]|_)\/([A-Z]|_)/);
+      if (tile) {
+        rowOne.push("-" + tile[1] + "-")
+        rowOne.push(S)
+        rowTwo.push(S)
+        rowTwo.push("-" + tile[2] + "-")
+      }
+      tile = S.match(/([A-Z]|_)\\([A-Z]|_)/);
+      if (tile) {
+        rowOne.push(S)
+        rowOne.push("-" + tile[2] + "-")
+        rowTwo.push("-" + tile[1] + "-")
+        rowTwo.push(S)
+      }
+    }
+    
+    newArray.push(rowOne)
+    newArray.push(rowTwo)
+  }
+  
+  squareScale /= 2
+  root.style.setProperty("--square-scale", squareScale + "px")
+  setPattern(deepCopy(newArray))
+  
+  logAction(function() {
+    squareScale *= 2
+    root.style.setProperty("--square-scale", squareScale + "px")
+    setPattern(previousArray)
+  }, function() {
+    squareScale /= 2
+    root.style.setProperty("--square-scale", squareScale + "px")
+    setPattern(newArray)
+  })
+}
+
+function changeWidth(amount) {
+  if (W > 1 || amount >= 0) {
+    W += amount;
+    root.style.setProperty("--pattern-w", W);
+    resetCanvas();
+  }
+}
+
+function changeHeight(amount) {
+  if (H > 1 || amount >= 0) {
+    H += amount;
+    root.style.setProperty("--pattern-h", H);
+    resetCanvas();
+  }
+}
+
+function setup() {
+  squareScale = 20;
+  W = 4;
+  H = 4;
+  mouseTimer = 0;
+
+  history = [];
+  future = [];
+
+  angleMode(DEGREES);
+
+  cursorX = 0;
+  cursorY = 0;
+
+  root = document.documentElement;
+  root.style.setProperty("--square-scale", squareScale + "px");
+  root.style.setProperty("--pattern-w", W);
+  root.style.setProperty("--pattern-h", H);
+
+  loadPattern({
+    data: JSON.parse(loadFile("Basic Patterns/Jacob's Ladder.json")),
+  });
+
+  loadDOM();
+
+  let canvas = createCanvas(patternSizeX * W, patternSizeY * H);
+  canvas.parent(select(".canvas-container"));
+  canvas.mousePressed(drawInPattern);
+
+  loadLayout();
+
+  test();
+}
+
+function draw() {
+  pattern_g.background("white");
+  printPattern(pattern_array, pattern_g);
+
+  if (mouseIsPressed && mouseTimer > 0) {
+    mouseTimer += deltaTime;
+  }
+  if (mouseIsPressed && mouseTimer >= holdBuffer) {
+    if (mouseOverCanvas()) drawTriangle();
+    else mouseReleased();
+  }
+  if (mouseOverCanvas()) {
+    drawTriCursor(currentTileDouble(), pattern_g);
+  }
+
+  printQuilt(pattern_g, W, H);
+  stroke(0);
+  strokeWeight(3);
+  noFill();
+  rect(0, 0, patternSizeX, patternSizeY);
+
+  noStroke();
+}
+
+function deepCopy(object) {
+  return JSON.parse(JSON.stringify(object));
+}
+
+function colorString(color) {
+  return JSON.stringify(color.levels);
+}
+
+function colorParse(string) {
+  return color(...JSON.parse(string));
+}
+
+document.addEventListener("keydown", (event) => {
+  if (event.ctrlKey && event.key === "Z") {
+    doRedo();
+  } else if (event.ctrlKey && event.key === "z") {
+    doUndo();
+  }
+});
+
+function mouseOverCanvas() {
+  return (
+    0 < mouseX &&
+    mouseX < patternSizeX * W &&
+    0 < mouseY &&
+    mouseY < patternSizeY * H
+  );
+}
+function test() {}
